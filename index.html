@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Страница продукта</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,700" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+</head>
+<body>
+<div class="coins" id="coincap">
+    <table class="coins_table">
+        <thead>
+            <tr>
+                <th class="coins_tableCell coins_tableCell__left">Name</th>
+                <th class="coins_tableCell">Price</th>
+                <th class="coins_tableCell">Market Cap</th>
+                <th class="coins_tableCell">Volume (24Hr)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <transition-group name="fade">
+                <tr class="coins_tableRow" v-for="coin in coins">
+                    <td class="coins_tableCell coins_tableCell__left">{{coin.name}}</td>
+                    <td class="coins_tableCell">${{Math.round(coin.priceUsd * 100) / 100}}</td>
+                    <td class="coins_tableCell">${{Math.round(coin.marketCapUsd * 100) / 100}}</td>
+                    <td class="coins_tableCell">${{Math.round(coin.volumeUsd24Hr * 100) / 100}}</td>
+                </tr>
+            </transition-group>
+        </tbody>
+    </table>
+</div>
+<script>
+
+    var vm = new Vue({
+        el: '#coincap',
+        data: {
+            coins: []
+        },
+        methods: {
+            //
+        },
+        beforeCreate: function() {
+            this.$http.get('https://api.coincap.io/v2/assets').then(response => {
+                console.log(response.body);
+                this.coins = response.body.data.slice(0, 15);
+
+                var coinsString = [];
+                this.coins.forEach(function(item) {
+                    coinsString.push(item.id);
+                });
+                coinsString = coinsString.join(',');
+
+                var pricesWs = new WebSocket('wss://ws.coincap.io/prices?assets=' + coinsString);
+                var $this = this;
+                pricesWs.onmessage = function (msg) {
+                    var prices = JSON.parse(msg.data);
+                    for (var key in prices) {
+                        $this.coins.some(function(item) {
+                            if (item.id == key) item.priceUsd = prices[key];
+                        })
+                    }
+                };
+                //const tradeWs = new WebSocket('wss://ws.coincap.io/trades/binance')
+
+                /*tradeWs.onmessage = function (msg) {
+                    console.log(msg.data)
+                }*/
+            }, response => {
+                console.log(response);
+            })
+        }
+    });
+
+    vm.$watch('coins', function (newVal, oldVal){
+        //console.log(newVal);
+    }, {
+        deep: true
+    })
+
+</script>
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+    }
+    .coins {
+        width:  1136px;
+        margin: 0 auto;
+    }
+    .coins_table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: .75rem;
+        box-shadow: 2px 2px 6px 0px rgba(0, 0, 0, 0.3);
+    }
+    .coins_tableRow:hover .coins_tableCell {
+        background-color: #efefef;
+    }
+    .coins_tableRow:last-child .coins_tableCell {
+        border: none;
+    }
+    .coins_tableCell {
+        padding: 1rem;
+        border-bottom: 1px solid #cdcdcd;
+        text-align: right;
+    }
+    .coins_tableCell__left {
+        text-align: left;
+    }
+    .fade-enter-active {
+        transition: opacity 1.5s;
+    }
+    .fade-enter, .fade-leave-to /* .fade-leave-active до версии 2.1.8 */ {
+        opacity: 0;
+    }
+</style>
+</body>
+</html>
