@@ -56,7 +56,10 @@
 
                 var pricesWs = new WebSocket('wss://ws.coincap.io/prices?assets=' + coinsString);
                 var $this = this;
+
+                var delay = false;
                 pricesWs.onmessage = function (msg) {
+                    if (delay) return false;
                     var prices = JSON.parse(msg.data);
                     //console.log(prices);
                     for (var key in prices) {
@@ -68,17 +71,22 @@
                                     item.change = 'grow';
                                     setTimeout(function() {
                                         item.change = '';
-                                    }, 2000)
+                                    }, 1000)
                                 } else {
                                     item.change = 'fall';
                                     setTimeout(function() {
                                         item.change = '';
-                                    }, 2000)
+                                    }, 1000)
                                 }
                             }
                         })
                     }
+                    delay = true;
+                    setTimeout(function() {
+                        delay = false;
+                    }, 1000);
                 };
+
                 //const tradeWs = new WebSocket('wss://ws.coincap.io/trades/binance')
 
                 /*tradeWs.onmessage = function (msg) {
@@ -127,7 +135,7 @@
         padding: 1rem;
         border-bottom: 1px solid #cdcdcd;
         text-align: right;
-        transition: background-color .5s ease-in-out;
+        transition: background-color 1s ease-in-out;
     }
     .coins_tableCell__left {
         text-align: left;
