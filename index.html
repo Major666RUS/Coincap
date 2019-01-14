@@ -20,7 +20,7 @@
         </thead>
         <tbody>
             <transition-group name="fade">
-                <tr class="coins_tableRow" v-for="coin in coins">
+                <tr class="coins_tableRow" v-for="coin in coins" v-bind:class="coin.change">
                     <td class="coins_tableCell coins_tableCell__left">{{coin.name}}</td>
                     <td class="coins_tableCell">${{Math.round(coin.priceUsd * 100) / 100}}</td>
                     <td class="coins_tableCell">${{Math.round(coin.marketCapUsd * 100) / 100}}</td>
@@ -44,6 +44,9 @@
             this.$http.get('https://api.coincap.io/v2/assets').then(response => {
                 console.log(response.body);
                 this.coins = response.body.data.slice(0, 15);
+                this.coins.forEach(function(item) {
+                    //item.oldPriceUsd =
+                });
 
                 var coinsString = [];
                 this.coins.forEach(function(item) {
@@ -55,9 +58,24 @@
                 var $this = this;
                 pricesWs.onmessage = function (msg) {
                     var prices = JSON.parse(msg.data);
+                    //console.log(prices);
                     for (var key in prices) {
                         $this.coins.some(function(item) {
-                            if (item.id == key) item.priceUsd = prices[key];
+                            if (item.id == key) {
+                                item.oldPriceUsd = item.priceUsd;
+                                item.priceUsd = prices[key];
+                                if (item.priceUsd > item.oldPriceUsd) {
+                                    item.change = 'grow';
+                                    setTimeout(function() {
+                                        item.change = '';
+                                    }, 2000)
+                                } else {
+                                    item.change = 'fall';
+                                    setTimeout(function() {
+                                        item.change = '';
+                                    }, 2000)
+                                }
+                            }
                         })
                     }
                 };
@@ -99,10 +117,17 @@
     .coins_tableRow:last-child .coins_tableCell {
         border: none;
     }
+    .coins_tableRow.grow > td {
+        background-color: rgba(0, 128, 0, 0.2);
+    }
+    .coins_tableRow.fall > td {
+        background-color: rgba(255, 0, 0, 0.2);
+    }
     .coins_tableCell {
         padding: 1rem;
         border-bottom: 1px solid #cdcdcd;
         text-align: right;
+        transition: background-color .5s ease-in-out;
     }
     .coins_tableCell__left {
         text-align: left;
